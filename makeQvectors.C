@@ -89,48 +89,20 @@ filteredDF defineVariables(definedDF &d, string collision_energy, string str_nuc
     return yCM;
   };
 
+  auto getFhcalModId = [](const RVecI &modIds)
+  {
+    RVecD modules;
+    for (auto &id:modIds)
+      modules.push_back((double)id);
+    return modules;
+  };
+  
   auto fhcalModPhi = [](const RVec<XYZVector> &modules)
   {
     RVecF phi;
     for (auto &mod:modules)
       phi.push_back(mod.Phi());
     return phi;
-  };
-
-  auto isModF1 = [](const RVecI &ModId)
-  {
-    RVecI modF1;
-    vector<int> f1_modules = { 14, 15, 16, 21, 23, 28, 29, 30 };
-    for (auto &id:ModId) {
-      if (std::find(f1_modules.begin(), f1_modules.end(), id) != f1_modules.end())
-        modF1.push_back(1);
-      else modF1.push_back(0);
-    }
-    return modF1;
-  };
-
-  auto isModF2 = [](const RVecI &ModId)
-  {
-    RVecI modF2;
-    vector<int> f2_modules = { 6, 7, 8, 9, 10, 13, 17, 20, 24, 27, 31, 34, 35, 36, 37, 38 };
-    for (auto &id:ModId) {
-      if (std::find(f2_modules.begin(), f2_modules.end(), id) != f2_modules.end())
-        modF2.push_back(1);
-      else modF2.push_back(0);
-    }
-    return modF2;
-  };
-
-  auto isModF3 = [](const RVecI &ModId)
-  {
-    RVecI modF3;
-    vector<int> f3_modules = { 0, 1, 2, 3, 4, 5, 11, 12, 18, 19, 25, 26, 32, 33, 39, 40, 41, 42, 43, 44 };
-    for (auto &id:ModId) {
-      if (std::find(f3_modules.begin(), f3_modules.end(), id) != f3_modules.end())
-        modF3.push_back(1);
-      else modF3.push_back(0);
-    }
-    return modF3;
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -159,19 +131,17 @@ filteredDF defineVariables(definedDF &d, string collision_energy, string str_nuc
     .Define("simCh", getCharge, {"simCharge"})
     .Define("simPID", getPdg, {"simPdg"})
     .Define("simHasFHCalHit", "simHasHitFHCal")
+    .Define("fhcalModID", getFhcalModId, {"fhcalModId"})
     .Define("fhcalModPhi", fhcalModPhi, {"fhcalModPos"})
     .Define("fhcalModPosX", "fhcalModPos.fCoordinates.fX")
     .Define("fhcalModPosY", "fhcalModPos.fCoordinates.fY")
-    .Define("fhcalModF1", isModF1, {"fhcalModId"})
-    .Define("fhcalModF2", isModF2, {"fhcalModId"})
-    .Define("fhcalModF3", isModF3, {"fhcalModId"})
     .Filter("evB>=0.")
     ;
 
   varPatterns =
     {
       "ev(B|Bnorm|PhiRP)", // kEvent
-      "fhcalMod(Id|F1|F2|F3|E|Phi|PosX|PosY)", // kChannel
+      "fhcalMod(Id|ID|E|Phi|PosX|PosY)", // kChannel
       "tr(P|Pt|Eta|Ycm|Phi|Ch|Nhits|MotherId|M2|PID)", // kRecParticle
       "sim(P|Pt|Eta|Ycm|Phi|Ch|MotherId|PID|HasFHCalHit)" // kSimParticle
     };
@@ -181,6 +151,10 @@ filteredDF defineVariables(definedDF &d, string collision_energy, string str_nuc
 
 void setupQvectors()
 {
+  std::vector<int> f1_modules = { 14, 15, 16, 21, 23, 28, 29, 30 };
+  std::vector<int> f2_modules = { 6, 7, 8, 9, 10, 13, 17, 20, 24, 27, 31, 34, 35, 36, 37, 38 };
+  std::vector<int> f3_modules = { 0, 1, 2, 3, 4, 5, 11, 12, 18, 19, 25, 26, 32, 33, 39, 40, 41, 42, 43, 44 };
+  
   vector<Qn::AxisD> corrAxesEvent =
     {
       {"evBnorm", 10, 0., 2.}
@@ -259,10 +233,12 @@ void setupQvectors()
   man.AddCutOnDetector(name.c_str(), {"trPID"}, [](float pid){ auto pid_code = std::round(pid); return (pid_code == 2212); }, "pid_cut");
   man.AddCutOnDetector(name.c_str(), {"trCh"}, [](float charge){ return (charge>0); }, "charge_cut");
   man.AddCutOnDetector(name.c_str(), {"trYcm"}, [](float ycm){ return (ycm > -1.2 && ycm < -0.6); }, "yCM_cut");
+  man.AddCutOnDetector(name.c_str(), {"trPt"}, [](float pt){ return (pt > 0.2 && pt < 2.); }, "pt_cut");
   man.AddCorrectionOnQnVector(name.c_str(), recentering);
   man.AddCorrectionOnQnVector(name.c_str(), twistRescale);
   man.SetOutputQVectors(name.c_str(), {plain, recentered, twisted, rescaled});
   man.AddHisto1D(name.c_str(), {"trPhi", 100, -3.15, 3.15}, "Ones");
+  man.AddHisto2D(name.c_str(), {{"trYcm", 400, -2., 2.}, {"trPt", 300, 0.0, 3.0}}, "Ones");
 
   name = "Q_TPC_Tpi";
   man.AddDetector(name.c_str(), track, "trPhi", "Ones", {}, {1, 2}, sumW);
@@ -271,40 +247,42 @@ void setupQvectors()
   man.AddCutOnDetector(name.c_str(), {"trPID"}, [](float pid){ auto pid_code = std::round(pid); return (pid_code == -211); }, "pid_cut");
   man.AddCutOnDetector(name.c_str(), {"trCh"}, [](float charge){ return (charge<0); }, "charge_cut");
   man.AddCutOnDetector(name.c_str(), {"trYcm"}, [](float ycm){ return (ycm > -1.5 && ycm < -0.2); }, "yCM_cut");
+  man.AddCutOnDetector(name.c_str(), {"trPt"}, [](float pt){ return (pt > 0. && pt < 0.35); }, "pt_cut");
   man.AddCorrectionOnQnVector(name.c_str(), recentering);
   man.AddCorrectionOnQnVector(name.c_str(), twistRescale);
   man.SetOutputQVectors(name.c_str(), {plain, recentered, twisted, rescaled});
   man.AddHisto1D(name.c_str(), {"trPhi", 100, -3.15, 3.15}, "Ones");
+  man.AddHisto2D(name.c_str(), {{"trYcm", 400, -2., 2.}, {"trPt", 300, 0.0, 3.0}}, "Ones");
 
   name = "Q_FHCal_F1";
   man.AddDetector(name.c_str(), channel, "fhcalModPhi", "fhcalModE", {}, {1}, sumW);
-  man.AddCutOnDetector(name.c_str(), {"fhcalModF1"}, [](bool isMod){ return (isMod == 1); }, "Subevent_cut");
+  man.AddCutOnDetector(name.c_str(), {"fhcalModID"}, [f1_modules](double mod_id){ auto id = std::round(mod_id); return (std::find(f1_modules.begin(), f1_modules.end(), id) != f1_modules.end()); }, "Subevent_cut");
   man.AddCorrectionOnQnVector(name.c_str(), recentering);
   man.AddCorrectionOnQnVector(name.c_str(), twistRescale);
   man.SetOutputQVectors(name.c_str(), {plain, recentered, twisted, rescaled});
   man.AddHisto1D(name.c_str(), {"fhcalModId", 100, 0., 100}, "fhcalModE");
   man.AddHisto1D(name.c_str(), {"fhcalModPhi", 100, -3.15, 3.15}, "fhcalModE");
-  man.AddHisto2D(name.c_str(), {{"fhcalModPosX", 100, -100., 100.}, {"fhcalModPosY", 100, -100., 100.}});
+  man.AddHisto2D(name.c_str(), {{"fhcalModPosX", 100, -100., 100.}, {"fhcalModPosY", 100, -100., 100.}}, "fhcalModE");
 
   name = "Q_FHCal_F2";
   man.AddDetector(name.c_str(), channel, "fhcalModPhi", "fhcalModE", {}, {1}, sumW);
-  man.AddCutOnDetector(name.c_str(), {"fhcalModF2"}, [](bool isMod){ return (isMod == 1); }, "Subevent_cut");
+    man.AddCutOnDetector(name.c_str(), {"fhcalModID"}, [f2_modules](double mod_id){ auto id = std::round(mod_id); return (std::find(f2_modules.begin(), f2_modules.end(), id) != f2_modules.end()); }, "Subevent_cut");
   man.AddCorrectionOnQnVector(name.c_str(), recentering);
   man.AddCorrectionOnQnVector(name.c_str(), twistRescale);
   man.SetOutputQVectors(name.c_str(), {plain, recentered, twisted, rescaled});
   man.AddHisto1D(name.c_str(), {"fhcalModId", 100, 0., 100}, "fhcalModE");
   man.AddHisto1D(name.c_str(), {"fhcalModPhi", 100, -3.15, 3.15}, "fhcalModE");
-  man.AddHisto2D(name.c_str(), {{"fhcalModPosX", 100, -100., 100.}, {"fhcalModPosY", 100, -100., 100.}});
+  man.AddHisto2D(name.c_str(), {{"fhcalModPosX", 100, -100., 100.}, {"fhcalModPosY", 100, -100., 100.}}, "fhcalModE");
 
   name = "Q_FHCal_F3";
   man.AddDetector(name.c_str(), channel, "fhcalModPhi", "fhcalModE", {}, {1}, sumW);
-  man.AddCutOnDetector(name.c_str(), {"fhcalModF3"}, [](bool isMod){ return (isMod == 1); }, "Subevent_cut");
+  man.AddCutOnDetector(name.c_str(), {"fhcalModID"}, [f3_modules](double mod_id){ auto id = std::round(mod_id); return (std::find(f3_modules.begin(), f3_modules.end(), id) != f3_modules.end()); }, "Subevent_cut");
   man.AddCorrectionOnQnVector(name.c_str(), recentering);
   man.AddCorrectionOnQnVector(name.c_str(), twistRescale);
   man.SetOutputQVectors(name.c_str(), {plain, recentered, twisted, rescaled});
   man.AddHisto1D(name.c_str(), {"fhcalModId", 100, 0., 100}, "fhcalModE");
   man.AddHisto1D(name.c_str(), {"fhcalModPhi", 100, -3.15, 3.15}, "fhcalModE");
-  man.AddHisto2D(name.c_str(), {{"fhcalModPosX", 100, -100., 100.}, {"fhcalModPosY", 100, -100., 100.}});
+  man.AddHisto2D(name.c_str(), {{"fhcalModPosX", 100, -100., 100.}, {"fhcalModPosY", 100, -100., 100.}}, "fhcalModE");
 
   name = "u_sim_proton";
   man.AddDetector(name.c_str(), track, "simPhi", "Ones", corrAxesSimParticle, {1, 2}, sumW);
