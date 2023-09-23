@@ -32,7 +32,7 @@ export MassNo=209 # for Bi+Bi
 #export MassNo=197 # for Au+Au
 
 export FILELIST=/scratch2/parfenov/Soft/qntools_macros_mpd/macros/urqmd_bibi_2.5gev_mpdfxt.list
-#export ORIG_QA_FILE=
+export ORIG_QA_FILE=/scratch2/parfenov/Soft/qntools_macros_mpd/OUT/urqmd_bibi_2.5gev_mpdfxt/93317/qa.root
 
 export SHORTNAME1=`basename $FILELIST`
 export SHORTNAME11=${SHORTNAME1%.list}
@@ -82,12 +82,9 @@ echo "" &>> $OUT_LOG
 
 cd $TMP_DIR
 
-if [ ! -f "$ORIG_QA_FILE" ]
+if [[ -f "${ORIG_QA_FILE}" ]]
 then
-	export ORIG_QA_FILE=qa.root
-else
-  #ln -s $ORIG_QA_FILE ${TMP_DIR}/qa_orig.root &>> $LOG
-  rsync -vuzh $ORIG_QA_FILE ${TMP_DIR}/qa.root &>> $LOG
+    rsync -vuzh $ORIG_QA_FILE ${TMP_DIR}/qa.root &>> $OUT_LOG
 fi
 
 root -l -b -q ${MACRO_EXE}'("'${INFILE}'","'${TMP_DIR}/qa.root'", "'${TMP_DIR}/qn.root'","'${Tkin}'","'${MassNo}'")' &>> $OUT_LOG
