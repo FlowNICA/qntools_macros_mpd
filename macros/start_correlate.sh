@@ -24,7 +24,7 @@ export ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH:/scratch2/parfenov/Soft/QnTools/inst
 export JOB_ID=${JOB_ID}
 export TASK_ID=${SGE_TASK_ID}
 
-export FILELIST=/scratch2/parfenov/Soft/qntools_macros_mpd/macros/qn_urqmd_bibi_2.5gev_mpdfxt.list
+export FILELIST=/scratch2/parfenov/Soft/qntools_macros_mpd/macros/qn_urqmd_bibi_3.0gev_mpdfxt.list
 
 export SHORTNAME1=`basename $FILELIST`
 export SHORTNAME11=${SHORTNAME1%.list}

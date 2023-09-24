@@ -24,15 +24,15 @@ export ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH:/scratch2/parfenov/Soft/QnTools/inst
 export JOB_ID=${JOB_ID}
 export TASK_ID=${SGE_TASK_ID}
 
-export Tkin=1.46 #AGeV - for 2.5 GeV
+#export Tkin=1.46 #AGeV - for 2.5 GeV
 #export Tkin=2.92 #AGeV - for 3.0 GeV
-#export Tkin=4.65 #AGeV - for 3.5 GeV
+export Tkin=4.65 #AGeV - for 3.5 GeV
 
 export MassNo=209 # for Bi+Bi
 #export MassNo=197 # for Au+Au
 
-export FILELIST=/scratch2/parfenov/Soft/qntools_macros_mpd/macros/urqmd_bibi_2.5gev_mpdfxt.list
-export ORIG_QA_FILE=/scratch2/parfenov/Soft/qntools_macros_mpd/OUT/urqmd_bibi_2.5gev_mpdfxt/93322/qa.root
+export FILELIST=/scratch2/parfenov/Soft/qntools_macros_mpd/macros/urqmd_bibi_3.5gev_mpdfxt.list
+#export ORIG_QA_FILE=/scratch2/parfenov/Soft/qntools_macros_mpd/OUT/urqmd_bibi_3.0gev_mpdfxt/93627/qa.root
 
 export SHORTNAME1=`basename $FILELIST`
 export SHORTNAME11=${SHORTNAME1%.list}
